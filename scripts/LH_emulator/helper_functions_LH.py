@@ -53,8 +53,9 @@ def inner_cut_1D(inner_cut,x,arr):
     x,arr=x[idx],arr[idx]
     return x,arr
 
-def set_suite(suite):
-    txt_file = 'CosmoAstroSeed_'+suite+'_reduced.txt'
+def set_suite(suite, home):
+    seedpath = home.split('emu_CAMELS')[0]+'emu_CAMELS/scripts/LH_emulator/'
+    txt_file = seedpath + 'CosmoAstroSeed_'+suite+'_reduced.txt'
 
     data = np.loadtxt(txt_file, dtype={'names': ('sim_name', 'omegam', 'sigma8', 'asn1', 'aagn1', 'asn2', 'aagn2', 'seed'),
                                    'formats': ('S10', float, float, float, float, float, float, int )} )
@@ -116,7 +117,7 @@ def build_emulator_3D(home,suite,prof,func_str):
     #these lines need to be adjusted if you have more than one redshift
     #but this will make the github version work for the currently uploaded profiles
     z=np.array([z[-1]])
-    Sim_name, OmegaM, sigma8, ASN1, AAGN1, ASN2, AAGN2 = set_suite(suite)
+    Sim_name, OmegaM, sigma8, ASN1, AAGN1, ASN2, AAGN2 = set_suite(suite, home)
     nums_tot=np.linspace(0,999,1000,dtype='int')
 
     #remove some sims for radial limits
@@ -163,7 +164,7 @@ def build_emulator_CMASS(home,suite,prof,func_str):
     z=choose_redshift(suite)
     z=np.array([z[-1]])
 
-    Sim_name, OmegaM, sigma8, ASN1, AAGN1, ASN2, AAGN2 = set_suite(suite)
+    Sim_name, OmegaM, sigma8, ASN1, AAGN1, ASN2, AAGN2 = set_suite(suite, home)
     nums_tot=np.linspace(0,999,1000,dtype='int')
 
     #remove some sims for radial limits   
