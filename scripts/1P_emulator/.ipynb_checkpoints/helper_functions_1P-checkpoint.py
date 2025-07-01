@@ -1,4 +1,9 @@
 import numpy as np
+import sys
+
+sys.path.append('/home/jovyan/home/src/')
+from pality import pality
+
 import ostrich.emulate
 import ostrich.interpolate
 from astropy import units as u
@@ -71,6 +76,23 @@ def inner_cut_1D(inner_cut,x,arr):
     idx=np.array(idx[0])
     x,arr=x[idx],arr[idx]
     return x,arr
+
+def set_suite(suite, home):
+    seedpath = home.split('emu_CAMELS')[0]+'emu_CAMELS/scripts/LH_emulator/'
+    txt_file = seedpath + 'CosmoAstroSeed_'+suite+'_reduced.txt'
+
+    data = np.loadtxt(txt_file, dtype={'names': ('sim_name', 'omegam', 'sigma8', 'asn1', 'aagn1', 'asn2', 'aagn2', 'seed'),
+                                   'formats': ('S10', float, float, float, float, float, float, int )} )
+
+    Sim_name = data['sim_name']
+    OmegaM = data['omegam']
+    sigma8 = data['sigma8']
+    ASN1 = data['asn1']
+    ASN2 = data['asn2']
+    AAGN1 = data['aagn1']
+    AAGN2 = data['aagn2']
+
+    return Sim_name, OmegaM, sigma8, ASN1, AAGN1, ASN2, AAGN2
 
 def cartesian_prod(*arrays):
     la = len(arrays)

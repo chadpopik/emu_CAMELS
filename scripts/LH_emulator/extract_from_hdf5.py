@@ -4,18 +4,20 @@ import profile_functions
 import h5py
 import sys
 
-home='/home/cemoser/Repositories/emu_CAMELS/emulator_profiles/LH_set' 
+savepath='/home/jovyan/home/emu_CAMELS/emulator_profiles'
+filepath='/home/jovyan/home/illstack_CAMELS/CAMELS_example/Batch_hdf5_files'
 
 #-----------------------------------input section
-suite=sys.argv[1]
-emulator_type='CMASS' #general or CMASS
-  
-nums=np.linspace(0,999,1000,dtype='int')
-simulations=['LH_'+str(n) for n in nums]
+suite="IllustrisTNG"
+subset="1P"
+emulator_type='Moser2022' #general or CMASS
+
+nums=np.arange(0, 66, dtype='int')
+simulations=[f"{n}" for n in nums if n not in [5, 16, 27, 38, 49, 60]]
 
 if emulator_type=='general':
     #snap_arr=['033','032','031','030','029','028','027','026','025','024']
-    snap_arr=['024']
+    snap_arr=['24']
 
     #higher mass bins giving me trouble, just do lower 2 for now
     mass_str_arr=['11-11.5','11.5-12']
@@ -25,12 +27,20 @@ if emulator_type=='general':
     mh_high_pow_arr=[11.5,12]
 
 elif emulator_type=='CMASS':
-    snap_arr=['024']
+    snap_arr=['24']
     mass_str_arr=['11.3-13.2'] #13.98, there are no halos above 13.1
-    mh_low_arr=[10**11.3] #had 12.12 for 1P
+    mh_low_arr=[10**12.12] #had 12.12 for 1P
     mh_high_arr=[10**13.2] 
     mh_low_pow_arr=[11.3]
-    mh_high_pow_arr=[13.2]
+    mh_high_pow_arr=[12.12]
+
+elif emulator_type=='Moser2022':
+    snap_arr=['24']
+    mass_str_arr=['11.3-12.3'] #13.98, there are no halos above 13.1
+    mh_low_arr=[10**12] #had 12.12 for 1P
+    mh_high_arr=[10**12.3]
+    mh_low_pow_arr=[11.3]
+    mh_high_pow_arr=[12.3]
 
 #--------------------------------------------------------------- 
 outer_cut = 2.7
@@ -41,24 +51,26 @@ if suite=='SIMBA':
     nums_remove = np.array([5,6,16,37,77,90,95,103,127,133,149,156,161,166,168,179,184,222,234,241,257,267,270,295,303,311,313,322,324,325,356,385,389,418,430,460,492,500,522,531,605,615,616,622,625,629,647,659,678,680,692,723,735,742,766,776,779,783,802,811,830,834,880,897,930,936,943,958,970,977]
 )
 elif suite=='IllustrisTNG':
-    z=0.53726
+    z=0.5372601453713048
     #outer_cut = 1.7 #if we want all of them, need cut of 1.7
     #these are the sims we need to remove to have an outer cut of 2.7, which we need for projection
-    nums_remove = np.array([43, 51, 75, 102, 111, 122, 123, 138, 145, 183, 207, 225, 233, 263, 298, 344, 372, 397, 439, 449, 453, 477, 484, 492, 505, 512, 539, 577, 584, 607, 611, 617, 646, 661, 675, 713, 719, 726, 728, 743, 800, 801, 837, 841, 888, 898, 914, 921, 942, 948, 964])
+    # nums_remove = np.array([43, 51, 75, 102, 111, 122, 123, 138, 145, 183, 207, 225, 233, 263, 298, 344, 372, 397, 439, 449, 453, 477, 484, 492, 505, 512, 539, 577, 584, 607, 611, 617, 646, 661, 675, 713, 719, 726, 728, 743, 800, 801, 837, 841, 888, 898, 914, 921, 942, 948, 964])
+    nums_remove=[]
 
-sims_remove = ['LH_'+str(s) for s in nums_remove]
-simulations = [s for s in simulations if s not in sims_remove]
+    sims_remove = [str(s) for s in nums_remove]
+    simulations = [s for s in simulations if s not in sims_remove]
 
 def extract(simulation,snap):
     #change path to hdf5 files as necessary
-    stacks=h5py.File(home+'/hdf5_files/'+suite+'_'+simulation+'_'+snap+'.hdf5','r')
-    val            = stacks['Profiles']
-    val_dens       = np.array(val[0,:,:])
-    val_pres       = np.array(val[1,:,:])
-    val_metal_gmw  = np.array(val[2,:,:])
-    val_temp_gmw   = np.array(val[3,:,:])
+    stacks=h5py.File(f"{filepath}/{suite}/{suiteset}/{suite}_{suiteset}_{simulation}_{snap}.hdf5",'r')
+    val_dens       = np.array(stacks['Profiles/gasdens'])
+    val_pres       = np.array(stacks['Profiles/gaspth'])
+    # val_metal_gmw  = np.array(stacks['Profiles/metals_gmw'])
+    # val_temp_gmw   = np.array(stacks['Profiles/gastemp_gmw'])
+    val_metal_gmw = np.ones(val_dens.shape)
+    val_temp_gmw = np.ones(val_dens.shape)
     bins           = np.array(stacks['nbins'])
-    r              = np.array(stacks['r'])
+    r              = np.array(stacks['Profiles/r'])
     nprofs         = np.array(stacks['nprofs'])
     mh             = np.array(stacks['Group_M_Crit200'])
     rh             = np.array(stacks['Group_R_Crit200'])
@@ -115,10 +127,16 @@ for j in np.arange(len(simulations)):
         
             if emulator_type=='general':
                 header='R (Mpc), mean rho (Msol/kpc^3), errup (Msol/kpc^3), errlow, std, median rho (Msol/kpc^3), mean pth (Msol/kpc/s^2), errup(Msol/kpc/s^2), errlow, std, median pth (Msol/kpc/s^2), mean gas-mass-weighted metal (fraction), errup, errlow, std, median metal, mean gas-mass-weighted temp (K), errup, errlow, std, median temp  \n nprofs %i, mean mh %f, median mh %f \n Mass range %.2f - %.1f'%(nprofsm,np.mean(mhm),np.median(mhm),mh_low_pow,mh_high_pow)
-                np.savetxt(home+'/'+suite+'/'+suite+'_'+sim+'_'+snap+'_uw_%s.txt'%mass_str,np.c_[r_mpc_cut2,mean_unnorm_densm, errup_dens_unnormm,errlow_dens_unnormm,std_dens_unnormm,median_unnorm_densm,mean_unnorm_presm,errup_pres_unnormm,errlow_pres_unnormm,std_pres_unnormm,median_unnorm_presm,mean_unnorm_metal_gmwm, errup_metal_gmw_unnormm,errlow_metal_gmw_unnormm,std_metal_gmw_unnormm,median_unnorm_metal_gmwm,mean_unnorm_temp_gmwm, errup_temp_gmw_unnormm,errlow_temp_gmw_unnormm,std_temp_gmw_unnormm,median_unnorm_temp_gmwm],header=header)
+                np.savetxt(f"{savepath}/{suite}/{suiteset}/general/{suite}_{suiteset}_{sim}_{snap}_uw_{mass_str}.txt",np.c_[r_mpc_cut2,mean_unnorm_densm, errup_dens_unnormm,errlow_dens_unnormm,std_dens_unnormm,median_unnorm_densm,mean_unnorm_presm,errup_pres_unnormm,errlow_pres_unnormm,std_pres_unnormm,median_unnorm_presm,mean_unnorm_metal_gmwm, errup_metal_gmw_unnormm,errlow_metal_gmw_unnormm,std_metal_gmw_unnormm,median_unnorm_metal_gmwm,mean_unnorm_temp_gmwm, errup_temp_gmw_unnormm,errlow_temp_gmw_unnormm,std_temp_gmw_unnormm,median_unnorm_temp_gmwm],header=header)
         
             if emulator_type=='CMASS':
                 mean_mh,mean_unnorm_dens_w,mean_unnorm_pres_w=profile_functions.mass_distribution_weight(mhm,val_densm,val_presm)
                 header='R (Mpc), rho (Msol/kpc^3), errup, errlow, std, pth (Msol/kpc/s^2), errup, errlow, std \n nprofs %i, average weighted mh %f'%(nprofs,mean_mh)
-                #mean_masses_w[sim]=mean_mh
-                np.savetxt('/home/cemoser/Repositories/emu_CAMELS/mopc_profiles/'+suite+'/'+suite+'_'+sim+'_'+snap+'_w.txt',np.c_[r_mpc_cut2,mean_unnorm_dens_w, errup_dens_unnormm,errlow_dens_unnormm,std_dens_unnormm,mean_unnorm_pres_w,errup_pres_unnormm,errlow_pres_unnormm,std_pres_unnormm],header=header)
+                #mean_masses_w[sim]=mean_mh f"{savepath}/{suite}/{suiteset}/{suite}_{suiteset}_{sim}_{snap}_w.txt"
+                np.savetxt(f"{savepath}/{suite}/{suiteset}/CMASS/{suite}_{suiteset}_{sim}_{snap}_w_CMASS.txt",np.c_[r_mpc_cut2,mean_unnorm_dens_w, errup_dens_unnormm,errlow_dens_unnormm,std_dens_unnormm,mean_unnorm_pres_w,errup_pres_unnormm,errlow_pres_unnormm,std_pres_unnormm],header=header)
+
+            if emulator_type=='Moser2022':
+                mean_mh,mean_unnorm_dens_w,mean_unnorm_pres_w=profile_functions.mass_distribution_weight(mhm,val_densm,val_presm)
+                header='R (Mpc), rho (Msol/kpc^3), errup, errlow, std, pth (Msol/kpc/s^2), errup, errlow, std \n nprofs %i, average weighted mh %f'%(nprofs,mean_mh)
+                #mean_masses_w[sim]=mean_mh f"{savepath}/{suite}/{suiteset}/{suite}_{suiteset}_{sim}_{snap}_w.txt"
+                np.savetxt(f"{savepath}/{suite}/{suiteset}/Moser2022/{suite}_{suiteset}_{sim}_{snap}_w_Moser2022.txt",np.c_[r_mpc_cut2,mean_unnorm_dens_w, errup_dens_unnormm,errlow_dens_unnormm,std_dens_unnormm,mean_unnorm_pres_w,errup_pres_unnormm,errlow_pres_unnormm,std_pres_unnormm],header=header)
